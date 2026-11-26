@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DrugWatch — Pharmacovigilance &amp; ADE Intelligence</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">DW</div>
+        <div>
+          <h1>DrugWatch</h1>
+          <p class="subtitle">Adverse Drug Event (ADE) Extraction, Classification &amp; Analytics</p>
+        </div>
+      </div>
+      <div class="status-pill" id="apiStatus">
+        <span class="dot"></span>
+        <span id="apiStatusText">Checking backend...</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="analyzer" type="button">Live Text Analyzer</button>
+      <button class="tab-btn" data-tab="analytics" type="button">Corpus Stats &amp; Charts</button>
+    </nav>
+
+    <!-- TAB 1: LIVE ANALYZER -->
+    <section id="tab-analyzer" class="tab-panel active">
+      <div class="card input-card">
+        <div class="card-header">
+          <div>
+            <h2>Clinical Note / Literature Analyzer</h2>
+            <p class="muted">Enter medical text, FAERS reports, or PubMed abstract sentences to detect drugs, adverse events, and ADE classification.</p>
+          </div>
+          <div class="legend">
+            <span class="legend-item"><span class="swatch swatch-drug"></span> Drug (Blue)</span>
+            <span class="legend-item"><span class="swatch swatch-event"></span> ADE / Event (Red)</span>
+          </div>
+        </div>
+
+        <div class="sample-bar">
+          <span class="sample-label">Try samples:</span>
+          <button class="sample-chip" type="button" data-sample="Patient developed severe nausea and headache after taking ibuprofen and aspirin.">Ibuprofen + Aspirin (ADE)</button>
+          <button class="sample-chip" type="button" data-sample="After starting metformin the patient reported vomiting and stomach pain. Warfarin also caused gastrointestinal bleeding.">Multi-sentence Report (ADE)</button>
+          <button class="sample-chip" type="button" data-sample="Among the 10 most frequently reported drugs, levetiracetam, valproic acid, oxcarbazepine, and lamotrigine were reported with seizures and urticaria.">Pediatric Abstract (ADE)</button>
+          <button class="sample-chip" type="button" data-sample="Patient took vitamin C daily and feels completely healthy. No adverse reactions were observed after paracetamol.">Safe Use / Negation (Non-ADE)</button>
+        </div>
+
+        <textarea
+          id="clinicalInput"
+          rows="5"
+          placeholder="Paste clinical report, patient note, or PubMed sentence here... e.g. 'Patient developed rash and nausea after taking aspirin.'"
+        ></textarea>
+
+        <div class="action-row">
+          <button id="analyzeBtn" class="btn btn-primary" type="button">
+            Analyze Text
+          </button>
+          <button id="clearBtn" class="btn btn-secondary" type="button">
+            Clear
+          </button>
+          <span id="errorBanner" class="error-text" role="alert"></span>
+        </div>
+      </div>
+
+      <div id="resultsArea" class="results-grid hidden">
+        <!-- Highlighted Text Card -->
+        <div class="card span-2">
+          <div class="card-header">
+            <h3>Entity-Highlighted Text</h3>
+            <div class="entity-counts">
+              <span class="pill pill-drug" id="drugCountBadge">0 Drugs</span>
+              <span class="pill pill-event" id="eventCountBadge">0 ADEs</span>
+            </div>
+          </div>
+          <div id="highlightedText" class="highlighted-box"></div>
+        </div>
+
+        <!-- Classification Card -->
+        <div class="card">
+          <h3>ADE Classification</h3>
+          <div id="classificationCard" class="classification-box">
+            <div class="class-header">
+              <span id="classLabel" class="class-badge">—</span>
+              <span id="classConfText" class="conf-value">0%</span>
+            </div>
+            <div class="progress-track">
+              <div id="classConfBar" class="progress-fill"></div>
+            </div>
+            <p class="muted small-note">Model: TF-IDF + Logistic Regression (<code>/classify</code>)</p>
+          </div>
+          <div id="sentenceBreakdown" class="sentence-list"></div>
+        </div>
+
+        <!-- Extracted Pairs Card -->
+        <div class="card">
+          <h3>Extracted Drug–ADE Pairs</h3>
+          <div id="pairsContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: STATS & ANALYTICS -->
+    <section id="tab-analytics" class="tab-panel">
+      <div class="kpi-grid">
+        <div class="card kpi-card">
+          <span class="kpi-label">Drugs in Dataset</span>
+          <strong class="kpi-value" id="kpiTotalDrugs">—</strong>
+        </div>
+        <div class="card kpi-card">
+          <span class="kpi-label">Total ADE Mentions</span>
+          <strong class="kpi-value" id="kpiTotalMentions">—</strong>
+        </div>
+        <div class="card kpi-card">
+          <span class="kpi-label">Unique ADE Terms</span>
+          <strong class="kpi-value" id="kpiUniqueAdes">—</strong>
+        </div>
+        <div class="card kpi-card">
+          <span class="kpi-label">Extracted Corpus Sentences</span>
+          <strong class="kpi-value" id="kpiCorpusSents">—</strong>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>Top Drugs with ADEs</h3>
+            <span class="pill pill-drug">Drug Frequency</span>
+          </div>
+          <div id="topDrugsChart" class="bar-chart"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Most Frequent ADEs</h3>
+            <span class="pill pill-event">Event Frequency</span>
+          </div>
+          <div id="topEventsChart" class="bar-chart"></div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-header">
+          <h3>Top Drugs &amp; Associated Adverse Events</h3>
+          <button id="refreshStatsBtn" class="btn btn-secondary btn-sm" type="button">Refresh Stats</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Drug</th>
+                <th>ADE Count</th>
+                <th>Sample Reported Events</th>
+              </tr>
+            </thead>
+            <tbody id="topDrugsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="card-header">
+          <h3>Extracted Corpus Sentences (<code>results/extractions.json</code>)</h3>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Source File</th>
+                <th>Sentence</th>
+                <th>Drugs</th>
+                <th>Events</th>
+              </tr>
+            </thead>
+            <tbody id="corpusTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

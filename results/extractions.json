@@ -1,0 +1,35 @@
+[
+  {
+    "file": "abstract-31771857.txt",
+    "sent_idx": 10,
+    "sentence": "only a few drugs are withdrawn from the market, mainly due to hepatotoxicity.",
+    "drugs": [],
+    "events": [
+      "hepatotoxicity"
+    ]
+  },
+  {
+    "file": "abstract-36369590.txt",
+    "sent_idx": 28,
+    "sentence": "among the 10 most frequently reported drugs, anticonvulsants such as levetiracetam 6.6 , valproic acid 5.6 , oxcarbazepine 3.6 , and lamotrigine 3.4 were mainly reported in the kidsafe reports, while in the eudravigilance reports, mite allergen extract 4.4 and allergens 3.6 were preferentially reported.",
+    "drugs": [
+      "anticonvulsants",
+      "levetiracetam",
+      "valproic acid",
+      "oxcarbazepine",
+      "lamotrigine"
+    ],
+    "events": []
+  },
+  {
+    "file": "abstract-36369590.txt",
+    "sent_idx": 29,
+    "sentence": "seizures were the most frequently reported clinically specific adrs in the kidsafe reports, whereas anaphylactic reactions and urticaria were prominent in the spontaneous reports from eudravigilance.",
+    "drugs": [],
+    "events": [
+      "seizures",
+      "anaphylactic",
+      "urticaria"
+    ]
+  }
+]

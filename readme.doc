@@ -1,0 +1,276 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8" />
+<title>DrugWatch - Complete Project Preparation Guide</title>
+<style>
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1e293b;
+    margin: 36px;
+  }
+  h1 {
+    color: #1e3a8a;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 6px;
+    font-size: 20pt;
+  }
+  h2 {
+    color: #1d4ed8;
+    margin-top: 22px;
+    font-size: 14pt;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 3px;
+  }
+  h3 {
+    color: #0f172a;
+    margin-top: 14px;
+    font-size: 12pt;
+  }
+  p { margin: 8px 0; }
+  ul, ol { margin: 6px 0 12px 22px; }
+  li { margin: 4px 0; }
+  code {
+    font-family: Consolas, "Courier New", monospace;
+    background-color: #f1f5f9;
+    padding: 1px 4px;
+    font-size: 10pt;
+  }
+  pre {
+    font-family: Consolas, "Courier New", monospace;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    padding: 10px;
+    font-size: 9.5pt;
+    white-space: pre-wrap;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 10pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 7px 9px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background-color: #eff6ff;
+    color: #1e3a8a;
+    font-weight: bold;
+  }
+  .note {
+    background-color: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 8px 12px;
+    margin: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>DrugWatch — Project Study &amp; Preparation Guide</h1>
+<p><strong>Project Goal:</strong> End-to-end Pharmacovigilance system that cleans biomedical text, extracts Drugs and Adverse Drug Events (ADEs), classifies whether a sentence describes an ADE or Non-ADE, serves REST APIs via FastAPI, highlights entities in a web UI (Drugs in Blue, ADEs in Red), and visualizes ADE analytics.</p>
+
+<h2>1. End-to-End Pipeline Flow</h2>
+<p><strong>Data Ingestion &rarr; NER Extraction &rarr; ADE Classification &rarr; FastAPI Backend &rarr; Web UI &amp; Analytics</strong></p>
+<ol>
+  <li><strong>Data Cleaning (<code>data_ingestion.py</code>):</strong> Reads raw PubMed abstracts from <code>data/raw/*.txt</code>, lowercases and cleans punctuation, splits text into sentences using SpaCy, and outputs <code>data/cleaned/sentences.json</code>.</li>
+  <li><strong>Entity Extraction / NER (<code>extract.py</code>):</strong> Detects Drug names and Adverse Events (ADEs) from each sentence and outputs structured pairs <code>{drug, event}</code> plus character spans <code>{text, label, start, end}</code>. Batch execution saves <code>results/extractions.json</code>.</li>
+  <li><strong>Sentence Classification (<code>classifier.py</code>):</strong> Uses TF-IDF + Logistic Regression to classify text as <code>ADE</code> or <code>Non-ADE</code> along with a probability confidence score.</li>
+  <li><strong>Backend API (<code>main.py</code>):</strong> Exposes <code>/healthcheck</code>, <code>/extract</code>, <code>/classify</code>, <code>/stats</code>, and serves the frontend UI at <code>/</code> (and Swagger API docs at <code>/docs</code>).</li>
+  <li><strong>Frontend UI (<code>frontend/</code>):</strong> Sends user text to <code>/extract</code> and <code>/classify</code>, highlights drugs in blue and ADEs in red, displays classification confidence and Drug-ADE tables, and renders corpus bar charts from <code>/stats</code>.</li>
+</ol>
+
+<h2>2. Project File Structure</h2>
+<table>
+  <tr>
+    <th>File / Folder</th>
+    <th>Purpose</th>
+  </tr>
+  <tr>
+    <td><code>data_ingestion.py</code> &amp; <code>backend/data_ingestion.py</code></td>
+    <td>Cleans raw <code>.txt</code> files in <code>data/raw/</code> and splits them into sentences using SpaCy (<code>en_core_web_sm</code>), saving <code>data/cleaned/sentences.json</code>.</td>
+  </tr>
+  <tr>
+    <td><code>extract.py</code></td>
+    <td>Biomedical NER module. Tries SciSpacy models first, falls back to <code>en_core_web_sm</code> + dictionary regex built from <code>dataset.json</code>. Exposes <code>extract_spans()</code>, <code>extract_from_sentence()</code>, and <code>run_extraction()</code>.</td>
+  </tr>
+  <tr>
+    <td><code>classifier.py</code></td>
+    <td>Trains a <code>TfidfVectorizer</code> + <code>LogisticRegression</code> model on labeled ADE and Non-ADE sentences (including negation cases and <code>dataset.json</code> pairs). Exposes <code>classify_sentence(text)</code>.</td>
+  </tr>
+  <tr>
+    <td><code>slm.py</code></td>
+    <td>Utility script that loads sentences from <code>dataset.json</code> (or list-format extraction JSON) and classifies them using the classifier.</td>
+  </tr>
+  <tr>
+    <td><code>main.py</code></td>
+    <td>FastAPI backend server connecting extraction, classification, statistics, CORS middleware, and static frontend files.</td>
+  </tr>
+  <tr>
+    <td><code>dataset.json</code></td>
+    <td>Pharmacovigilance knowledge base mapping 1,000+ drugs to reported adverse event descriptions.</td>
+  </tr>
+  <tr>
+    <td><code>results/extractions.json</code></td>
+    <td>Output of running <code>extract.py</code> on <code>data/cleaned/sentences.json</code>.</td>
+  </tr>
+  <tr>
+    <td><code>frontend/index.html</code>, <code>styles.css</code>, <code>app.js</code></td>
+    <td>Interactive web dashboard for live text analysis (blue/red highlighting, confidence bar, pairs table) and corpus stats/charts.</td>
+  </tr>
+  <tr>
+    <td><code>preprocessing.ipynb</code> &amp; <code>slm_llm.ipynb</code></td>
+    <td>Exploratory notebooks for preprocessing and rule-based relation extraction, normalization, and evaluation.</td>
+  </tr>
+  <tr>
+    <td><code>requirements.txt</code></td>
+    <td>Python package dependencies (<code>fastapi</code>, <code>uvicorn</code>, <code>pydantic</code>, <code>scikit-learn</code>, <code>spacy</code>, <code>pandas</code>).</td>
+  </tr>
+</table>
+
+<h2>3. Backend Explained — What Was Used, Why, and How</h2>
+<table>
+  <tr>
+    <th>Technology / Component</th>
+    <th>What It Is</th>
+    <th>Why It Was Used</th>
+    <th>How It Is Used in DrugWatch</th>
+  </tr>
+  <tr>
+    <td><strong>FastAPI</strong> (<code>main.py</code>)</td>
+    <td>Modern Python web framework for building REST APIs.</td>
+    <td>Very fast, minimal boilerplate, built-in JSON validation, and automatically generates interactive Swagger UI at <code>/docs</code>.</td>
+    <td>Defines <code>app = FastAPI(...)</code> with GET/POST endpoints (<code>/healthcheck</code>, <code>/extract</code>, <code>/classify</code>, <code>/stats</code>, <code>/</code>) and serves the frontend folder via <code>StaticFiles</code> and <code>FileResponse</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Uvicorn</strong></td>
+    <td>High-speed ASGI web server for Python.</td>
+    <td>FastAPI is an ASGI application and needs an ASGI server to listen on HTTP ports (like port 8000).</td>
+    <td>Started with <code>python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Pydantic</strong> (<code>BaseModel</code>)</td>
+    <td>Python data validation library integrated with FastAPI.</td>
+    <td>Guarantees incoming API requests have valid types and returns clear 422 errors if fields are missing.</td>
+    <td><code>class TextInput(BaseModel): text: str</code> validates the JSON body sent to <code>POST /extract</code> and <code>POST /classify</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>CORS Middleware</strong> (<code>CORSMiddleware</code>)</td>
+    <td>Cross-Origin Resource Sharing middleware.</td>
+    <td>Allows browsers or external frontends (e.g., React running on another port like 3000) to call the FastAPI backend without browser security blocks.</td>
+    <td>Configured on <code>app.add_middleware(CORSMiddleware, allow_origins=["*"], ...)</code> in <code>main.py</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>SpaCy</strong> (<code>en_core_web_sm</code> + SciSpacy fallback)</td>
+    <td>Industrial-strength NLP library.</td>
+    <td>Provides accurate sentence splitting (<code>doc.sents</code>) and optional biomedical NER (<code>en_ner_bc5cdr_md</code> / <code>en_core_sci_sm</code>) without breaking if heavy SciSpacy packages are not installed.</td>
+    <td>Used in <code>data_ingestion.py</code> to split raw abstracts into sentences, in <code>extract.py</code> for NER + sentence splitting, and in <code>main.py</code> to split multi-sentence notes before classification.</td>
+  </tr>
+  <tr>
+    <td><strong>Dictionary + Boundary Regex NER</strong> (<code>extract.py</code>)</td>
+    <td>Curated + dataset-driven entity recognizer using compiled word-boundary regular expressions.</td>
+    <td>Standard <code>en_core_web_sm</code> only tags general entities (ORG/PERSON/GPE), not drugs or diseases. Loading terms from <code>dataset.json</code> gives real medical coverage offline and fast.</td>
+    <td>Loads valid drug and event terms from <code>dataset.json</code>, sorts longest-first, matches with <code>(?&lt;!\w)term(?!\w)</code>, resolves overlapping spans, and outputs exact <code>start</code>/<code>end</code> indices for blue/red UI highlighting.</td>
+  </tr>
+  <tr>
+    <td><strong>Scikit-learn TF-IDF + Logistic Regression</strong> (<code>classifier.py</code>)</td>
+    <td>Classic ML text classification pipeline.</td>
+    <td>Lightweight, trains in milliseconds on startup, handles unigrams + bigrams (<code>ngram_range=(1,2)</code>), and provides probability confidence via <code>predict_proba()</code>.</td>
+    <td>Vectorizes training sentences (ADE, Non-ADE, negation, and dataset-derived examples) and predicts <code>"ADE"</code> or <code>"Non-ADE"</code> with confidence for each sentence in <code>/classify</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Rule-Based Causal Cues</strong> (<code>main.py</code>)</td>
+    <td>Keyword cue matcher (<code>CAUSAL_CUES</code> like <code>caused</code>, <code>due to</code>, <code>after</code>, <code>following</code>).</td>
+    <td>Distinguishes likely causal drug-event relationships from mere co-occurrence in the same text.</td>
+    <td>Annotates each extracted pair in <code>/extract</code> with <code>"relation": "adverse_effect"</code> or <code>"co_occurrence"</code>.</td>
+  </tr>
+  <tr>
+    <td><strong>Python <code>Counter</code> Analytics</strong> (<code>main.py</code>)</td>
+    <td>Standard-library frequency aggregator.</td>
+    <td>Zero extra database required; computes summary metrics and rankings directly from <code>dataset.json</code> and <code>results/extractions.json</code>.</td>
+    <td>Powers <code>GET /stats</code> to return Top 12 Drugs by ADE count, Top 12 ADE frequencies, KPI counts, and corpus extraction rows.</td>
+  </tr>
+</table>
+
+<h2>4. API Endpoints &amp; Why You Saw <code>{"status": "ok"}</code></h2>
+<div class="note">
+  <strong>About <code>{"status": "ok"}</code>:</strong> Originally, <code>main.py</code> only defined <code>/healthcheck</code> (returning <code>{"status": "ok"}</code>), <code>/extract</code>, and <code>/classify</code> with mock data, and had no <code>/</code> home route. Now:
+  <ul>
+    <li><code>GET /</code> (<code>http://127.0.0.1:8000/</code>) opens the full <strong>DrugWatch Web UI</strong>.</li>
+    <li><code>GET /healthcheck</code> (<code>http://127.0.0.1:8000/healthcheck</code>) <strong>still returns <code>{"status": "ok"}</code></strong> so you can verify the backend is alive.</li>
+    <li><code>GET /docs</code> (<code>http://127.0.0.1:8000/docs</code>) opens FastAPI's interactive Swagger documentation where you can click any endpoint &rarr; <em>Try it out</em> &rarr; <em>Execute</em>.</li>
+  </ul>
+</div>
+
+<table>
+  <tr>
+    <th>Method &amp; Endpoint</th>
+    <th>Input</th>
+    <th>Output</th>
+  </tr>
+  <tr>
+    <td><code>GET /</code></td>
+    <td>None</td>
+    <td>Serves <code>frontend/index.html</code> (the DrugWatch dashboard).</td>
+  </tr>
+  <tr>
+    <td><code>GET /healthcheck</code></td>
+    <td>None</td>
+    <td><code>{"status": "ok"}</code></td>
+  </tr>
+  <tr>
+    <td><code>POST /extract</code></td>
+    <td><code>{"text": "Patient developed nausea after aspirin."}</code></td>
+    <td><code>extractions</code> (drug-event pairs + relation), <code>drugs</code>, <code>events</code>, and character <code>spans</code>.</td>
+  </tr>
+  <tr>
+    <td><code>POST /classify</code></td>
+    <td><code>{"text": "Patient developed nausea after aspirin."}</code></td>
+    <td><code>label</code> (<code>"ADE"</code> or <code>"Non-ADE"</code>), <code>confidence</code> (0–1), and per-sentence <code>sentences</code> list.</td>
+  </tr>
+  <tr>
+    <td><code>GET /stats</code></td>
+    <td>None</td>
+    <td><code>summary</code> KPIs, <code>top_drugs</code>, <code>top_events</code>, and <code>corpus_extractions</code>.</td>
+  </tr>
+</table>
+
+<h2>5. How to Run the Project</h2>
+<pre>
+cd D:\Projects\Drug_Watch-main\Drug_Watch-main
+pip install -r requirements.txt
+python -m spacy download en_core_web_sm
+
+# Optional: run pipeline scripts individually
+python data_ingestion.py
+python extract.py
+python classifier.py
+
+# Start backend + UI server
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+</pre>
+<p>Then open <code>http://127.0.0.1:8000</code> for the Web UI, <code>http://127.0.0.1:8000/healthcheck</code> for status check, and <code>http://127.0.0.1:8000/docs</code> for Swagger API testing.</p>
+
+<h2>6. Viva / Presentation Q&amp;A Preparation</h2>
+<ol>
+  <li><strong>Q: What problem does DrugWatch solve?</strong><br />
+  A: Pharmacovigilance teams need to monitor clinical notes, FAERS reports, and PubMed abstracts for Adverse Drug Events (ADEs). DrugWatch automates extracting drugs and adverse events, classifying whether a sentence reports an actual ADE, and visualizing top risky drugs and common side effects.</li>
+  <li><strong>Q: Why did you combine SpaCy with a dictionary from <code>dataset.json</code>?</strong><br />
+  A: Default SpaCy (<code>en_core_web_sm</code>) handles sentence segmentation accurately, but is trained on general news text rather than biomedical drugs/diseases. If SciSpacy biomedical models aren't installed, the <code>dataset.json</code> regex dictionary ensures accurate extraction of 1,000+ drugs and ~2,000 adverse event terms without failing.</li>
+  <li><strong>Q: How does the ADE classifier work, and how does it handle negation?</strong><br />
+  A: It uses TF-IDF with unigrams and bigrams (<code>ngram_range=(1, 2)</code>) fed into Logistic Regression. Bigrams like <code>"no adverse"</code>, <code>"without side"</code>, and <code>"tolerated well"</code> help distinguish negation/safe-use sentences (<code>Non-ADE</code>) from causal reaction sentences (<code>ADE</code>). For multi-sentence notes, FastAPI classifies each sentence individually so one ADE sentence isn't diluted by background sentences.</li>
+  <li><strong>Q: Why use FastAPI instead of Flask?</strong><br />
+  A: FastAPI offers automatic request/response validation via Pydantic, async/ASGI performance via Uvicorn, and automatic interactive API documentation at <code>/docs</code> out of the box.</li>
+  <li><strong>Q: How does the UI highlight drugs in blue and ADEs in red safely?</strong><br />
+  A: <code>/extract</code> returns non-overlapping character offsets (<code>start</code>, <code>end</code>, <code>label</code>). The frontend slices the original text using safe DOM text nodes (preventing HTML injection/XSS) and wraps drug spans in blue badges and event spans in red badges.</li>
+</ol>
+
+</body>
+</html>
