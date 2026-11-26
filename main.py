@@ -1,7 +1,7 @@
 import json
 from collections import Counter
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -58,6 +58,17 @@ def serve_ui():
     if index_path.exists():
         return FileResponse(str(index_path))
     return {"message": "DrugWatch API is running. Visit /docs for API documentation."}
+
+
+@app.get("/{asset_name}.css")
+@app.get("/{asset_name}.js")
+def serve_root_asset(asset_name: str, request: Request):
+    """Allow relative ./styles.css, ./config.js, and ./app.js when served from FastAPI root."""
+    filename = Path(request.url.path).name
+    candidate = FRONTEND_DIR / filename
+    if candidate.is_file():
+        return FileResponse(str(candidate))
+    raise HTTPException(status_code=404, detail="Not Found")
 
 
 @app.get("/healthcheck")

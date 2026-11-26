@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DrugWatch — Pharmacovigilance &amp; ADE Intelligence</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <header class="topbar">
@@ -16,9 +16,19 @@
           <p class="subtitle">Adverse Drug Event (ADE) Extraction, Classification &amp; Analytics</p>
         </div>
       </div>
-      <div class="status-pill" id="apiStatus">
-        <span class="dot"></span>
-        <span id="apiStatusText">Checking backend...</span>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <input
+          id="apiBaseInput"
+          type="text"
+          aria-label="Backend API URL"
+          placeholder="Backend URL (e.g. http://127.0.0.1:8000)"
+          style="padding:5px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; width:230px;"
+        />
+        <button id="saveApiBtn" class="btn btn-secondary btn-sm" type="button">Connect</button>
+        <div class="status-pill" id="apiStatus">
+          <span class="dot"></span>
+          <span id="apiStatusText">Checking backend...</span>
+        </div>
       </div>
     </div>
   </header>
@@ -185,6 +195,7 @@
     </section>
   </main>
 
-  <script src="/static/app.js"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

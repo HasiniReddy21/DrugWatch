@@ -13,7 +13,38 @@ const sentenceBreakdown = document.getElementById("sentenceBreakdown");
 const pairsContainer = document.getElementById("pairsContainer");
 const apiStatus = document.getElementById("apiStatus");
 const apiStatusText = document.getElementById("apiStatusText");
+const apiBaseInput = document.getElementById("apiBaseInput");
+const saveApiBtn = document.getElementById("saveApiBtn");
 const refreshStatsBtn = document.getElementById("refreshStatsBtn");
+
+function getApiBase() {
+  const saved = (localStorage.getItem("drugwatch_api_url") || "").trim().replace(/\/+$/, "");
+  if (saved) return saved;
+  const configured = (window.DRUGWATCH_API_URL || "").trim().replace(/\/+$/, "");
+  if (configured) return configured;
+  if (window.location.port === "8000") return "";
+  return "http://127.0.0.1:8000";
+}
+
+function apiUrl(path) {
+  return `${getApiBase()}${path}`;
+}
+
+if (apiBaseInput) {
+  apiBaseInput.value = getApiBase() || window.location.origin;
+}
+if (saveApiBtn) {
+  saveApiBtn.addEventListener("click", () => {
+    const val = (apiBaseInput.value || "").trim().replace(/\/+$/, "");
+    if (val) {
+      localStorage.setItem("drugwatch_api_url", val);
+    } else {
+      localStorage.removeItem("drugwatch_api_url");
+    }
+    checkHealth();
+    loadStats();
+  });
+}
 
 // Tabs
 document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -46,7 +77,7 @@ refreshStatsBtn.addEventListener("click", loadStats);
 
 async function checkHealth() {
   try {
-    const res = await fetch("/healthcheck");
+    const res = await fetch(apiUrl("/healthcheck"));
     if (!res.ok) throw new Error("Unhealthy");
     const data = await res.json();
     if (data.status === "ok") {
@@ -204,12 +235,12 @@ async function analyzeText() {
 
   try {
     const [extractRes, classifyRes] = await Promise.all([
-      fetch("/extract", {
+      fetch(apiUrl("/extract"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       }),
-      fetch("/classify", {
+      fetch(apiUrl("/classify"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -274,7 +305,7 @@ function renderBarChart(container, items, labelKey, fillClass) {
 
 async function loadStats() {
   try {
-    const res = await fetch("/stats");
+    const res = await fetch(apiUrl("/stats"));
     if (!res.ok) return;
     const data = await res.json();
 
