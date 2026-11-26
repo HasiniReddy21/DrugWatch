@@ -67,4 +67,4 @@
 * Data → NER → Classification → API → UI → Stats.
 
 - Backenddeploy - https://drugwatch-krq7.onrender.com
-- Frontend deploy - 
+- Frontend deploy - https://drugwatch-frontend.onrender.com
