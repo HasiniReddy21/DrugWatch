@@ -65,3 +65,6 @@
 
 ### Final Flow
 * Data → NER → Classification → API → UI → Stats.
+
+- Backenddeploy - https://drugwatch-krq7.onrender.com
+- Frontend deploy - 
